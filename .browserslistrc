@@ -1,4 +1,5 @@
-# Targets the Samsung S6 Smart Signage display (Tizen 4.x, Chromium ~56).
-# Next.js/SWC reads this file and transpiles JS syntax accordingly,
-# so optional chaining, nullish coalescing, etc. get compiled out of the bundle.
-Chrome >= 56
+# Compatibility for older Tizen/Samsung S6 WebViews
+> 0.5%
+last 2 versions
+not dead
+not ie <= 11
