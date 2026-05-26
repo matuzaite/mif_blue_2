@@ -145,6 +145,12 @@
   min-height: 0; 
   height: 100%;
 
+  /* GPU acceleration: promotes element to its own compositing layer.
+     Reduces CPU load and flicker on Samsung S6 Tizen browser. */
+  will-change: transform;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+
   &::-webkit-scrollbar {
     display: none;
   }

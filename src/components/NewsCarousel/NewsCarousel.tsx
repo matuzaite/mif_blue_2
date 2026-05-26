@@ -17,10 +17,17 @@ export default function NewsCarousel({ initialItems }: NewsCarouselProps) {
   const autoRotateTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
+    // AbortController prevents memory leaks if the component unmounts mid-request
+    // (e.g. when MagicInfo switches schedules).
+    const controller = new AbortController();
+
     const fetchLatestNews = async () => {
       try {
         // Naudojame ir laiką, ir Math.random(), nes TV vidiniai laikrodžiai dažnai būna "užšalę"
-        const res = await fetch(`/api/news?t=${new Date().getTime()}&r=${Math.random()}`);
+        const res = await fetch(
+          `/api/news?t=${new Date().getTime()}&r=${Math.random()}`,
+          { signal: controller.signal }
+        );
 
         const freshData = await res.json();
 
@@ -31,7 +38,10 @@ export default function NewsCarousel({ initialItems }: NewsCarouselProps) {
           setCurrentIndex((prev) => (prev >= freshData.length ? 0 : prev));
         }
       } catch (error) {
-        console.error("Klaida gaunant šviežias naujienas:", error);
+        // AbortError is expected when the component unmounts — not a real error.
+        if ((error as Error).name !== 'AbortError') {
+          console.error("Klaida gaunant šviežias naujienas:", error);
+        }
       }
     };
 
@@ -41,7 +51,10 @@ export default function NewsCarousel({ initialItems }: NewsCarouselProps) {
     // Automatiškai ir tyliai fone ieškome naujų žinių kas 30 minučių (1800000 ms)
     const updateInterval = setInterval(fetchLatestNews, 1800000);
 
-    return () => clearInterval(updateInterval);
+    return () => {
+      controller.abort(); // Cancel any in-flight request — crucial for S6 stability
+      clearInterval(updateInterval);
+    };
   }, []);
 
   const startAutoRotation = useCallback(() => {
@@ -95,6 +108,13 @@ export default function NewsCarousel({ initialItems }: NewsCarouselProps) {
       if (scrollHeight <= clientHeight) return;
 
       const scrollAnimation = () => {
+        // If the browser/tab is hidden by MagicInfo, pause execution to save CPU.
+        // We still re-queue the frame so the loop resumes immediately when visible again.
+        if (document.hidden) {
+          animationFrameId = requestAnimationFrame(scrollAnimation);
+          return;
+        }
+
         if (scrollRef.current && !isPausedRef.current) {
           if (scrollPosRef.current + clientHeight < scrollHeight - 2) {
             scrollPosRef.current += 0.5; // Scroll speed (approx 30px per sec on 60fps)
@@ -130,7 +150,9 @@ export default function NewsCarousel({ initialItems }: NewsCarouselProps) {
     const msToNight = night.getTime() - now.getTime();
 
     const reloadTimeout = setTimeout(() => {
-      window.location.reload();
+      // Safer than reload() on Tizen — avoids the white-screen-of-death
+      // caused by a corrupted cache on the Samsung S6 browser engine.
+      window.location.href = window.location.href;
     }, msToNight);
 
     return () => clearTimeout(reloadTimeout);
