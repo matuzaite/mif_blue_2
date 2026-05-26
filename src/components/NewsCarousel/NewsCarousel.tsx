@@ -17,44 +17,36 @@ export default function NewsCarousel({ initialItems }: NewsCarouselProps) {
   const autoRotateTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    // AbortController prevents memory leaks if the component unmounts mid-request
-    // (e.g. when MagicInfo switches schedules).
-    const controller = new AbortController();
-
-    const fetchLatestNews = async () => {
-      try {
-        // Naudojame ir laiką, ir Math.random(), nes TV vidiniai laikrodžiai dažnai būna "užšalę"
-        const res = await fetch(
-          `/api/news?t=${new Date().getTime()}&r=${Math.random()}`,
-          { signal: controller.signal }
-        );
-
-        const freshData = await res.json();
-
-        // Jei gavome naujienų, pakeičiame karuselės duomenis
-        if (freshData && freshData.length > 0) {
-          setItems(freshData);
-          // Apsauga: jei buvome 5 slaide, o naujienų liko tik 4, grįžtame į pradžią
-          setCurrentIndex((prev) => (prev >= freshData.length ? 0 : prev));
+    // XMLHttpRequest — universally supported on all Tizen versions,
+    // avoids any fetch/AbortController compatibility issues on S6.
+    const fetchLatestNews = () => {
+      var xhr = new XMLHttpRequest();
+      xhr.open('GET', '/api/news?t=' + new Date().getTime() + '&r=' + Math.random(), true);
+      xhr.onreadystatechange = function () {
+        if (xhr.readyState === 4 && xhr.status === 200) {
+          try {
+            var freshData = JSON.parse(xhr.responseText);
+            // Jei gavome naujienų, pakeičiame karuselės duomenis
+            if (freshData && freshData.length > 0) {
+              setItems(freshData);
+              // Apsauga: jei buvome 5 slaide, o naujienų liko tik 4, grįžtame į pradžią
+              setCurrentIndex(function (prev) { return prev >= freshData.length ? 0 : prev; });
+            }
+          } catch (e) {
+            console.error('Klaida gaunant šviežias naujienas:', e);
+          }
         }
-      } catch (error) {
-        // AbortError is expected when the component unmounts — not a real error.
-        if ((error as Error).name !== 'AbortError') {
-          console.error("Klaida gaunant šviežias naujienas:", error);
-        }
-      }
+      };
+      xhr.send();
     };
 
     // Iškviečiame funkciją iškart, kai tik komponentas atsiranda ekrane
     fetchLatestNews();
 
     // Automatiškai ir tyliai fone ieškome naujų žinių kas 30 minučių (1800000 ms)
-    const updateInterval = setInterval(fetchLatestNews, 1800000);
+    var updateInterval = setInterval(fetchLatestNews, 1800000);
 
-    return () => {
-      controller.abort(); // Cancel any in-flight request — crucial for S6 stability
-      clearInterval(updateInterval);
-    };
+    return function () { clearInterval(updateInterval); };
   }, []);
 
   const startAutoRotation = useCallback(() => {
@@ -160,9 +152,7 @@ export default function NewsCarousel({ initialItems }: NewsCarouselProps) {
     const handleResume = () => {
       if (!document.hidden) {
         reloadTimer = setTimeout(() => {
-          // assign(origin) is a clean navigation — more reliable than
-          // href self-assignment on the S6 Tizen cache layer.
-          window.location.assign(window.location.origin);
+          window.location.reload();
         }, 1000);
       }
     };
@@ -186,9 +176,8 @@ export default function NewsCarousel({ initialItems }: NewsCarouselProps) {
     const msToNight = night.getTime() - now.getTime();
 
     const reloadTimeout = setTimeout(() => {
-      // assign(origin) forces a full clean navigation — avoids the
-      // white-screen-of-death caused by Tizen's self-assignment cache bug.
-      window.location.assign(window.location.origin);
+      // Daily hard reload at 3 AM to clear accumulated memory.
+      window.location.reload();
     }, msToNight);
 
     return () => clearTimeout(reloadTimeout);
