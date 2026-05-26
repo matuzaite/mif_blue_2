@@ -160,7 +160,9 @@ export default function NewsCarousel({ initialItems }: NewsCarouselProps) {
     const handleResume = () => {
       if (!document.hidden) {
         reloadTimer = setTimeout(() => {
-          window.location.href = window.location.href;
+          // assign(origin) is a clean navigation — more reliable than
+          // href self-assignment on the S6 Tizen cache layer.
+          window.location.assign(window.location.origin);
         }, 1000);
       }
     };
@@ -184,9 +186,9 @@ export default function NewsCarousel({ initialItems }: NewsCarouselProps) {
     const msToNight = night.getTime() - now.getTime();
 
     const reloadTimeout = setTimeout(() => {
-      // Safer than reload() on Tizen — avoids the white-screen-of-death
-      // caused by a corrupted cache on the Samsung S6 browser engine.
-      window.location.href = window.location.href;
+      // assign(origin) forces a full clean navigation — avoids the
+      // white-screen-of-death caused by Tizen's self-assignment cache bug.
+      window.location.assign(window.location.origin);
     }, msToNight);
 
     return () => clearTimeout(reloadTimeout);

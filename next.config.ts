@@ -1,6 +1,13 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Produces a minimal self-contained bundle — reduces RAM usage on S6 Tizen.
+  output: 'standalone',
+  // Makes SWC read .browserslistrc and transpile JS syntax down to Chrome 56
+  // (Tizen 4.x). Without this flag SWC ignores the browserslist file entirely.
+  experimental: {
+    browsersListForSwc: true,
+  },
   allowedDevOrigins: ['192.168.75.177', 'localhost:3000'],
   images: {
     remotePatterns: [
