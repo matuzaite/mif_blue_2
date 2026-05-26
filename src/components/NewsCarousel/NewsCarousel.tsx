@@ -138,6 +138,40 @@ export default function NewsCarousel({ initialItems }: NewsCarouselProps) {
       if (animationFrameId) cancelAnimationFrame(animationFrameId);
     };
   }, [currentIndex]); // Now only triggers when the slide changes, not on hover
+  // When MagicInfo hides the webview, stop JS execution immediately.
+  // This prevents the rAF loop and any pending timers from exhausting
+  // the S6's limited RAM while the other schedule is on screen.
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        window.stop();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, []);
+
+  // When MagicInfo switches BACK to this schedule, the S6's memory may
+  // already be corrupted from the previous session. A soft reload after
+  // 1 s wipes the state and gives the browser a clean slate.
+  useEffect(() => {
+    let reloadTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const handleResume = () => {
+      if (!document.hidden) {
+        reloadTimer = setTimeout(() => {
+          window.location.href = window.location.href;
+        }, 1000);
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleResume);
+    return () => {
+      document.removeEventListener('visibilitychange', handleResume);
+      if (reloadTimer) clearTimeout(reloadTimer);
+    };
+  }, []);
+
   useEffect(() => {
     // Daily hard reload at 3 AM to clear memory
     const now = new Date();
