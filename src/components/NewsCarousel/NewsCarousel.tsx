@@ -9,6 +9,10 @@ interface NewsCarouselProps {
 }
 
 export default function NewsCarousel({ initialItems }: NewsCarouselProps) {
+  // S6 hydration guard: MagicInfo naršyklė bando "prikelti" komponentus
+  // prieš pilnai užsikraunant JS. Rodome juodą ekraną, kol JS pasiruošęs.
+  const [isMounted, setIsMounted] = useState(false);
+  useEffect(() => { setIsMounted(true); }, []);
   const router = useRouter();
   const [items, setItems] = useState<any[]>(initialItems);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -184,6 +188,10 @@ export default function NewsCarousel({ initialItems }: NewsCarouselProps) {
   }, []);
 
 
+
+  // Kol komponentas nėra "prisijungęs" kliento pusėje, rodome juodą ekraną
+  // (atitinka serverio renderintą turinį ir išvengia hydration neatitikimo)
+  if (!isMounted) return <div style={{ background: '#000', width: '100%', height: '100%' }} />;
 
   if (items.length === 0) return <div className={styles.loading}>Naujienų nerasta</div>;
 
