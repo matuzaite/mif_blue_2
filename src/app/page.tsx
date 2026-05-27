@@ -1,27 +1,35 @@
+'use client';
+
+import { useState, useEffect } from 'react';
 import Sidebar from '@/components/Sidebar/Sidebar';
 import NewsCarousel from '@/components/NewsCarousel/NewsCarousel';
 import styles from './page.module.css';
 
-// 1. IMPORTUOJAME TIESIOGIAI IŠ LIB FAILO
-import { fetchNews } from '@/lib/news'; 
+export default function Home() {
+  const [isReady, setIsReady] = useState(false);
 
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
+  useEffect(() => {
+    // Suteikiame 1 sekundės pauzę, kad naršyklė "atsikvėptų"
+    // prieš kraunant React komponentus (S6 Tizen suderinamumo fiksas)
+    const timer = setTimeout(() => {
+      setIsReady(true);
+    }, 1000);
 
-export default async function Home() {
-  let news: any[] = [];
-  try {
-    // 2. KVIEČIAME FUNKCIJĄ TIESIOGIAI (Jokio fetch į localhost!)
-    news = await fetchNews(); 
-  } catch (e) {
-    console.error("Duomenų gavimo klaida:", e);
+    // Valymas, kad išvengtume atminties nuotėkio
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Jei nesame pasiruošę - rodom juodą ekraną
+  if (!isReady) {
+    return <div style={{ background: '#000', width: '100vw', height: '100vh' }} />;
   }
 
+  // Kai viskas pasiruošę - kraunam komponentus
   return (
     <main className={styles.main}>
       <Sidebar />
       <div className={styles.contentArea}>
-        <NewsCarousel initialItems={news} />
+        <NewsCarousel initialItems={[]} />
       </div>
     </main>
   );
