@@ -6,7 +6,7 @@ const BASE = 'https://mif.vu.lt/lt3/';
 function fixImageSrcs(html: string): string {
     if (!html) return html;
     const root = parse(html);
-    
+
     // Remove the first image which is the Joomla injected thumbnail
     const firstImg = root.querySelector('img');
     if (firstImg) {
@@ -17,14 +17,31 @@ function fixImageSrcs(html: string): string {
         }
     }
 
-    root.querySelectorAll('img').forEach(img => {
-        const dataSrc = img.getAttribute('data-src')?.trim();
-        const src = img.getAttribute('src')?.trim();
-        const best = (dataSrc && !dataSrc.startsWith('data:') ? dataSrc : null)
-                  ?? (src && !src.startsWith('data:') ? src : null);
+    root.querySelectorAll('img').forEach(function(img) {
+        // Pakeista: .getAttribute('data-src')?.trim() → su && patikrinimu
+        var rawDataSrc = img.getAttribute('data-src');
+        var dataSrc = rawDataSrc ? rawDataSrc.trim() : '';
+
+        var rawSrc = img.getAttribute('src');
+        var src = rawSrc ? rawSrc.trim() : '';
+
+        // Pakeista: ?? → ternary su !== null && !== undefined
+        var best: string | null;
+        if (dataSrc && !dataSrc.startsWith('data:')) {
+            best = dataSrc;
+        } else if (src && !src.startsWith('data:')) {
+            best = src;
+        } else {
+            best = null;
+        }
+
         if (best) {
-            try { img.setAttribute('src', new URL(best, BASE).href); }
-            catch { img.setAttribute('src', best); }
+            try {
+                img.setAttribute('src', new URL(best, BASE).href);
+            } catch (error) {
+                // Pakeista: tuščias catch {} → catch (error) {}
+                img.setAttribute('src', best);
+            }
         }
     });
     return root.innerHTML;
@@ -42,21 +59,34 @@ export async function fetchNews() {
 
         return root.querySelectorAll('item')
             .slice(0, config.scraping.maxItems)
-            .map(item => {
-                const title = (item.querySelector('title')?.text ?? '').replace(/<[^>]*>?/gm, '').trim();
-                const link  = (item.querySelector('link')?.text ?? '').trim();
-                const pubDate = item.querySelector('pubDate')?.text ?? '';
-                const date = new Date(
+            .map(function(item) {
+                // Pakeista: ?.text ?? '' → && patikrinimai su ternary
+                var titleNode = item.querySelector('title');
+                var titleRaw = titleNode && titleNode.text ? titleNode.text : '';
+                var title = titleRaw.replace(/<[^>]*>?/gm, '').trim();
+
+                var linkNode = item.querySelector('link');
+                var link = (linkNode && linkNode.text ? linkNode.text : '').trim();
+
+                var pubDateNode = item.querySelector('pubDate');
+                var pubDate = pubDateNode && pubDateNode.text ? pubDateNode.text : '';
+
+                var date = new Date(
                     pubDate && !isNaN(Date.parse(pubDate)) ? pubDate : Date.now()
                 ).toLocaleDateString('lt-LT');
 
-                let description = item.querySelector('description')?.innerHTML ?? '';
+                var descNode = item.querySelector('description');
+                // Pakeista: ?.innerHTML ?? '' → && patikrinimai su ternary
+                var description = descNode && descNode.innerHTML ? descNode.innerHTML : '';
+
                 if (description.includes('<![CDATA[')) {
-                    description = description.replaceAll('<![CDATA[', '').replaceAll(']]>', '');
+                    // Pakeista: .replaceAll() → .split().join()
+                    description = description.split('<![CDATA[').join('').split(']]>').join('');
                 }
                 description = fixImageSrcs(description);
 
-                return { id: link || Math.random().toString(), title, link, date, category: 'Naujiena', description, image: '' };
+                var id = link ? link : Math.random().toString();
+                return { id: id, title: title, link: link, date: date, category: 'Naujiena', description: description, image: '' };
             });
 
     } catch (error) {
