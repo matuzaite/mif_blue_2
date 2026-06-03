@@ -12,7 +12,6 @@ export default function NewsCarousel({ initialItems }: NewsCarouselProps) {
   const router = useRouter();
   const [items, setItems] = useState<any[]>(initialItems);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [isPaused, setIsPaused] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const autoRotateTimerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -69,67 +68,15 @@ export default function NewsCarousel({ initialItems }: NewsCarouselProps) {
     startAutoRotation(); // Reset timer
   };
 
-  const scrollPosRef = useRef(0);
-  const isPausedRef = useRef(false);
 
-  // Sync the pause state without restarting the animation loop
-  useEffect(() => {
-    isPausedRef.current = isPaused;
-  }, [isPaused]);
-
-  // 1. Reset scroll position ONLY when the slide actually changes
+  // Reset scroll position when the slide changes
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = 0;
-      scrollPosRef.current = 0;
     }
   }, [currentIndex]);
 
-  // 2. High-performance scroll engine built for older TVs
-  useEffect(() => {
-    let animationFrameId: number = 0;
 
-    const delayTimeout = setTimeout(() => {
-      if (!scrollRef.current) return;
-
-      // CACHE heights ONCE. This saves the S6 from burning out its CPU.
-      const scrollHeight = scrollRef.current.scrollHeight;
-      const clientHeight = scrollRef.current.clientHeight;
-
-      // If text doesn't overflow, don't waste memory running a loop
-      if (scrollHeight <= clientHeight) return;
-
-      const scrollAnimation = () => {
-        // If the browser/tab is hidden by MagicInfo, pause execution to save CPU.
-        // We still re-queue the frame so the loop resumes immediately when visible again.
-        if (document.hidden) {
-          animationFrameId = requestAnimationFrame(scrollAnimation);
-          return;
-        }
-
-        if (scrollRef.current && !isPausedRef.current) {
-          if (scrollPosRef.current + clientHeight < scrollHeight - 2) {
-            scrollPosRef.current += 0.5; // Scroll speed (approx 30px per sec on 60fps)
-            const newScrollTop = Math.floor(scrollPosRef.current);
-
-            // ONLY write to the DOM if the pixel actually changed to prevent flickering
-            if (scrollRef.current.scrollTop !== newScrollTop) {
-              scrollRef.current.scrollTop = newScrollTop;
-            }
-          }
-        }
-        // Keep the loop alive seamlessly
-        animationFrameId = requestAnimationFrame(scrollAnimation);
-      };
-
-      animationFrameId = requestAnimationFrame(scrollAnimation);
-    }, 2000);
-
-    return () => {
-      clearTimeout(delayTimeout);
-      if (animationFrameId) cancelAnimationFrame(animationFrameId);
-    };
-  }, [currentIndex]); // Now only triggers when the slide changes, not on hover
   // When MagicInfo hides the webview, stop JS execution immediately.
   // This prevents the rAF loop and any pending timers from exhausting
   // the S6's limited RAM while the other schedule is on screen.
@@ -216,8 +163,6 @@ export default function NewsCarousel({ initialItems }: NewsCarouselProps) {
                 <div
                   ref={isActive ? scrollRef : null}
                   className={styles.articleBody}
-                  onMouseEnter={() => setIsPaused(true)}
-                  onMouseLeave={() => setIsPaused(false)}
                   tabIndex={0}
                 >
                   <div
