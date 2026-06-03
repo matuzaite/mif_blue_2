@@ -20,7 +20,8 @@ export default function NewsCarousel({ initialItems }: NewsCarouselProps) {
     // avoids any fetch/AbortController compatibility issues on S6.
     const fetchLatestNews = () => {
       var xhr = new XMLHttpRequest();
-      xhr.open('GET', '/api/news?t=' + new Date().getTime() + '&r=' + Math.random(), true);
+      // Naudojame pilną absoliutų IP adresą, kad veiktų iš file:// aplinkos
+      xhr.open('GET', 'http://193.219.91.103:11857/api/news?t=' + new Date().getTime() + '&r=' + Math.random(), true);
       xhr.onreadystatechange = function () {
         if (xhr.readyState === 4 && xhr.status === 200) {
           try {
@@ -52,7 +53,7 @@ export default function NewsCarousel({ initialItems }: NewsCarouselProps) {
     if (autoRotateTimerRef.current) clearInterval(autoRotateTimerRef.current);
     autoRotateTimerRef.current = setInterval(() => {
       setCurrentIndex(prev => (prev + 1) % items.length);
-    }, 36000); // 36 seconds per slide
+    }, 30000); // SUTISYTA: Tiksliai 30 sekundžių vienai skaidrei
   }, [items.length]);
 
   useEffect(() => {
@@ -68,48 +69,12 @@ export default function NewsCarousel({ initialItems }: NewsCarouselProps) {
     startAutoRotation(); // Reset timer
   };
 
-
   // Reset scroll position when the slide changes
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = 0;
     }
   }, [currentIndex]);
-
-
-  // When MagicInfo hides the webview, stop JS execution immediately.
-  // This prevents the rAF loop and any pending timers from exhausting
-  // the S6's limited RAM while the other schedule is on screen.
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        window.stop();
-      }
-    };
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, []);
-
-  // When MagicInfo switches BACK to this schedule, the S6's memory may
-  // already be corrupted from the previous session. A soft reload after
-  // 1 s wipes the state and gives the browser a clean slate.
-  useEffect(() => {
-    let reloadTimer: ReturnType<typeof setTimeout> | null = null;
-
-    const handleResume = () => {
-      if (!document.hidden) {
-        reloadTimer = setTimeout(() => {
-          window.location.reload();
-        }, 1000);
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleResume);
-    return () => {
-      document.removeEventListener('visibilitychange', handleResume);
-      if (reloadTimer) clearTimeout(reloadTimer);
-    };
-  }, []);
 
   useEffect(() => {
     // Daily hard reload at 3 AM to clear memory
@@ -123,14 +88,11 @@ export default function NewsCarousel({ initialItems }: NewsCarouselProps) {
     const msToNight = night.getTime() - now.getTime();
 
     const reloadTimeout = setTimeout(() => {
-      // Daily hard reload at 3 AM to clear accumulated memory.
       window.location.reload();
     }, msToNight);
 
     return () => clearTimeout(reloadTimeout);
   }, []);
-
-
 
   if (items.length === 0) return <div className={styles.loading}>Naujienų nerasta</div>;
 
@@ -147,8 +109,6 @@ export default function NewsCarousel({ initialItems }: NewsCarouselProps) {
             >
               {/* Left Column: Image and Headline */}
               <div className={styles.leftColumn}>
-
-
                 <div className={styles.headlineContainer}>
                   <h2 className={styles.headline}>{item.title}</h2>
                 </div>
