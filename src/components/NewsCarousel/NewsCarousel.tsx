@@ -1,7 +1,6 @@
 'use client';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
 import styles from './NewsCarousel.module.scss';
 
 interface NewsCarouselProps {
@@ -9,8 +8,10 @@ interface NewsCarouselProps {
 }
 
 export default function NewsCarousel({ initialItems }: NewsCarouselProps) {
-  const router = useRouter();
   const [items, setItems] = useState<any[]>(initialItems);
+  const itemsRef = useRef(items);
+  useEffect(() => { itemsRef.current = items; }, [items]);
+  
   const [currentIndex, setCurrentIndex] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
   const autoRotateTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -52,9 +53,9 @@ export default function NewsCarousel({ initialItems }: NewsCarouselProps) {
   const startAutoRotation = useCallback(() => {
     if (autoRotateTimerRef.current) clearInterval(autoRotateTimerRef.current);
     autoRotateTimerRef.current = setInterval(() => {
-      setCurrentIndex(prev => (prev + 1) % items.length);
+      setCurrentIndex(prev => (prev + 1) % itemsRef.current.length);
     }, 30000); // Tiksliai 30 sekundžių vienai skaidrei
-  }, [items.length]);
+  }, []);
 
   useEffect(() => {
     if (items.length === 0) return;
