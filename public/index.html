@@ -283,8 +283,8 @@
     }
 
     .article-body img {
-      max-width: 480px;
-      max-height: 360px;
+      max-width: 700px;
+      max-height: 500px;
       width: auto;
       height: auto;
       -o-object-fit: contain;
@@ -356,10 +356,14 @@
 </head>
 
 <body>
+  <!-- DEBUG: shows slide count from XHR — remove after testing -->
+  <div id="debug" style="position:fixed;top:0;right:0;background:red;color:white;font-size:40px;z-index:9999">0</div>
 
   <div id="app">
-    <!-- Sidebar: 20% width, dark blue -->
+    <!-- Sidebar: 20% width, dark blue, shows clock + date -->
     <aside id="sidebar">
+      <div id="sidebar-time">00:00</div>
+      <div id="sidebar-date"></div>
     </aside>
 
     <!-- Content area: 80% width -->
@@ -393,6 +397,40 @@
     var currentIndex = 0;
     var autoRotateTimer = null;
 
+    /* ==============================================================
+     * CLOCK — update every second
+     * ============================================================== */
+    function updateClock() {
+      var now = new Date();
+      var h = now.getHours();
+      var m = now.getMinutes();
+
+      var hStr = h < 10 ? '0' + h : '' + h;
+      var mStr = m < 10 ? '0' + m : '' + m;
+
+      var timeEl = document.getElementById('sidebar-time');
+      if (timeEl) {
+        timeEl.innerHTML = hStr + ':' + mStr;
+      }
+
+      var months = [
+        'sausio', 'vasario', 'kovo', 'baland\u017eio', 'gegu\u017e\u0117s',
+        'bir\u017eelio', 'liepos', 'rugpj\u016b\u010dio', 'rugs\u0117jo',
+        'spalio', 'lapkri\u010dio', 'gruod\u017eio'
+      ];
+      var days = [
+        'sekmadienis', 'pirmadienis', 'antradienis', 'tre\u010diadienis',
+        'ketvirtadienis', 'penktadienis', '\u0161e\u0161tadienis'
+      ];
+
+      var dateEl = document.getElementById('sidebar-date');
+      if (dateEl) {
+        dateEl.innerHTML = days[now.getDay()] + ', ' + now.getDate() + ' ' + months[now.getMonth()];
+      }
+    }
+
+    setInterval(updateClock, 1000);
+    updateClock();
 
     /* ==============================================================
      * DAILY RELOAD at 03:00
