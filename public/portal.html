@@ -563,39 +563,20 @@
      * ============================================================== */
     function fetchLatestNews() {
       var xhr = new XMLHttpRequest();
-      /* Cache-busting: timestamp + random prevents Tizen from serving
-         a stale cached response */
-      xhr.open(
-        'GET',
-        API_URL + '?t=' + new Date().getTime() + '&r=' + Math.random(),
-        true
-      );
-      xhr.onreadystatechange = function () {
-        if (xhr.readyState === 4 && xhr.status === 200) {
-          try {
-            var freshData = JSON.parse(xhr.responseText);
-            if (freshData && freshData.length > 0) {
-              /* Update slides in place — interval will pick up the new
-                 length automatically on its next fire */
-              slides = freshData;
-              document.getElementById('debug').innerHTML = slides.length;
-              /* Guard: clamp index if new data has fewer slides */
-              if (currentIndex >= slides.length) {
-                currentIndex = 0;
-              }
-              /* Rebuild DOM to match updated slides array */
-              renderSlides();
-              /* Start rotation exactly once — never restart on refresh */
-              if (autoRotateTimer === null) {
-                startAutoRotation();
-              }
-            }
-          } catch (e) {
-            /* Silent fail — keep showing existing slides */
+      var url = API_URL + '?t=' + new Date().getTime();
+      try {
+        xhr.open('GET', url, false);
+        xhr.send();
+        if (xhr.status === 200) {
+          var freshData = JSON.parse(xhr.responseText);
+          if (freshData && freshData.length > 0) {
+            slides = freshData;
+            if (currentIndex >= slides.length) currentIndex = 0;
+            renderSlides();
+            startAutoRotation();
           }
         }
-      };
-      xhr.send();
+      } catch(e) {}
     }
 
     /* ── Fetch immediately on load, then silently every 30 minutes ── */
