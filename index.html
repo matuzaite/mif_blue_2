@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="lt">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VU MIF Naujienų Portalas</title>
+  <meta name="description" content="VU MIF naujienų portalas, skirtas Samsung Magic Info skaitmeninių iškabų ekranams.">
+  <style>
+    /* ─── CSS Variables ─── */
+    :root {
+      --sidebar-bg: #0D1631;
+      --sidebar-text: #FFFFFF;
+      --sidebar-text-muted: rgba(255, 255, 255, 0.60);
+      --bg-color: #0F1A36;
+      --bg-white: #FFFFFF;
+      --text-primary: #1A1A2E;
+      --text-secondary: #3A4A6B;
+      --text-muted: #6A7A9B;
+      --accent-primary: #0D1631;
+      --accent-light: #1A2B55;
+      --border-color: #D8E0F0;
+      --border-strong: #B0BDD8;
+    }
+
+    /* ─── Reset ─── */
+    * {
+      -webkit-box-sizing: border-box;
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      height: 100%;
+      width: 100%;
+      overflow: hidden;
+    }
+
+    body {
+      font-family: 'Trebuchet MS', Arial, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-primary);
+      height: 100vh;
+      width: 100vw;
+      overflow: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    h1, h2, h3, h4, h5, h6 {
+      font-family: 'Trebuchet MS', Arial, sans-serif;
+      font-weight: 700;
+    }
+
+    /* ─── Layout ─── */
+    #app {
+      display: -webkit-box;
+      display: -webkit-flex;
+      display: flex;
+      -webkit-box-orient: horizontal;
+      -webkit-box-direction: normal;
+      -webkit-flex-direction: row;
+      flex-direction: row;
+      height: 100vh;
+      width: 100vw;
+      overflow: hidden;
+    }
+
+    /* ─── Sidebar ─── */
+    #sidebar {
+      width: 20%;
+      -webkit-flex-shrink: 0;
+      flex-shrink: 0;
+      background: var(--sidebar-bg);
+      display: -webkit-box;
+      display: -webkit-flex;
+      display: flex;
+      -webkit-box-orient: vertical;
+      -webkit-box-direction: normal;
+      -webkit-flex-direction: column;
+      flex-direction: column;
+      -webkit-box-align: center;
+      -webkit-align-items: center;
+      align-items: center;
+      -webkit-box-pack: center;
+      -webkit-justify-content: center;
+      justify-content: center;
+      padding: 28px 0;
+      height: 100vh;
+      position: relative;
+    }
+
+    #sidebar-time {
+      color: var(--sidebar-text);
+      font-size: 3.0rem;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      line-height: 1;
+      text-align: center;
+    }
+
+    #sidebar-date {
+      color: var(--sidebar-text-muted);
+      font-size: 1.1rem;
+      margin-top: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      text-align: center;
+    }
+
+    /* ─── Content Area ─── */
+    #content-area {
+      -webkit-box-flex: 1;
+      -webkit-flex: 1;
+      flex: 1;
+      display: -webkit-box;
+      display: -webkit-flex;
+      display: flex;
+      -webkit-box-orient: vertical;
+      -webkit-box-direction: normal;
+      -webkit-flex-direction: column;
+      flex-direction: column;
+      overflow: hidden;
+      background: var(--bg-white);
+    }
+
+    /* ─── Carousel Wrapper ─── */
+    #carousel-wrapper {
+      -webkit-box-flex: 1;
+      -webkit-flex: 1;
+      flex: 1;
+      display: -webkit-box;
+      display: -webkit-flex;
+      display: flex;
+      -webkit-box-orient: vertical;
+      -webkit-box-direction: normal;
+      -webkit-flex-direction: column;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* ─── News Container ─── */
+    #news-container {
+      -webkit-box-flex: 1;
+      -webkit-flex: 1;
+      flex: 1;
+      display: -webkit-box;
+      display: -webkit-flex;
+      display: flex;
+      -webkit-box-orient: horizontal;
+      -webkit-box-direction: normal;
+      -webkit-flex-direction: row;
+      flex-direction: row;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* ─── Slide ─── */
+    .slide {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: -webkit-box;
+      display: -webkit-flex;
+      display: flex;
+      -webkit-box-orient: vertical;
+      -webkit-box-direction: normal;
+      -webkit-flex-direction: column;
+      flex-direction: column;
+      -webkit-transition: opacity 0.8s ease-in-out, visibility 0.8s ease-in-out;
+      transition: opacity 0.8s ease-in-out, visibility 0.8s ease-in-out;
+      will-change: opacity;
+      -webkit-backface-visibility: hidden;
+      backface-visibility: hidden;
+      background: white;
+    }
+
+    .slide-active {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+      z-index: 2;
+    }
+
+    .slide-inactive {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    /* ─── Left Column (Headline bar) ─── */
+    .left-column {
+      -webkit-flex-shrink: 0;
+      flex-shrink: 0;
+      display: -webkit-box;
+      display: -webkit-flex;
+      display: flex;
+      -webkit-box-orient: vertical;
+      -webkit-box-direction: normal;
+      -webkit-flex-direction: column;
+      flex-direction: column;
+      -webkit-box-align: start;
+      -webkit-align-items: flex-start;
+      align-items: flex-start;
+      padding: 32px 72px 20px 72px;
+      border-bottom: 1px solid var(--border-color);
+      background: white;
+    }
+
+    .headline {
+      font-size: 2.2rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      line-height: 1.25;
+      margin: 0;
+      letter-spacing: -0.01em;
+    }
+
+    /* ─── Right Column (Article body) ─── */
+    .right-column {
+      -webkit-box-flex: 1;
+      -webkit-flex: 1;
+      flex: 1;
+      display: -webkit-box;
+      display: -webkit-flex;
+      display: flex;
+      -webkit-box-orient: vertical;
+      -webkit-box-direction: normal;
+      -webkit-flex-direction: column;
+      flex-direction: column;
+      padding: 28px 72px 60px 72px;
+      overflow: hidden;
+      min-height: 0;
+    }
+
+    .date-label {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--accent-primary);
+      margin-bottom: 1.2rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .article-body {
+      -webkit-box-flex: 1;
+      -webkit-flex: 1;
+      flex: 1;
+      overflow-y: scroll;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      white-space: normal;
+      outline: none;
+      min-height: 0;
+      height: 100%;
+      will-change: transform;
+      -webkit-backface-visibility: hidden;
+      backface-visibility: hidden;
+    }
+
+    .article-body::-webkit-scrollbar {
+      display: none;
+    }
+
+    .article-body p,
+    .article-body div,
+    .article-body blockquote,
+    .article-body ul,
+    .article-body ol {
+      display: block;
+      font-size: 1.15rem;
+      line-height: 1.7;
+      color: #333333;
+      margin-bottom: 1.15rem;
+      text-align: justify;
+    }
+
+    .article-body img {
+      max-width: 700px;
+      max-height: 500px;
+      width: auto;
+      height: auto;
+      -o-object-fit: contain;
+      object-fit: contain;
+      border-radius: 8px;
+      margin: 1.5rem auto;
+      display: block;
+      -webkit-box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    /* ─── Progress dots ─── */
+    #progress-container {
+      position: absolute;
+      bottom: 24px;
+      left: 40px;
+      display: -webkit-box;
+      display: -webkit-flex;
+      display: flex;
+      z-index: 10;
+    }
+
+    .dot {
+      width: 16px;
+      height: 4px;
+      border-radius: 2px;
+      -webkit-transition: all 0.3s ease;
+      transition: all 0.3s ease;
+      cursor: pointer;
+      border: none;
+      background: var(--border-strong);
+      margin-right: 8px;
+      padding: 0;
+    }
+
+    .dot-active {
+      width: 48px;
+      background: var(--accent-primary);
+    }
+
+    .dot-inactive {
+      width: 16px;
+      background: var(--border-strong);
+    }
+
+    /* ─── Loading state ─── */
+    #loading-msg {
+      -webkit-box-flex: 1;
+      -webkit-flex: 1;
+      flex: 1;
+      display: -webkit-box;
+      display: -webkit-flex;
+      display: flex;
+      -webkit-box-align: center;
+      -webkit-align-items: center;
+      align-items: center;
+      -webkit-box-pack: center;
+      -webkit-justify-content: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      color: var(--text-muted);
+    }
+
+    /* ─── Hide scrollbar globally ─── */
+    ::-webkit-scrollbar {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <!-- Sidebar: 20% width, dark blue, shows clock + date -->
+    <aside id="sidebar">
+      <div id="sidebar-time">00:00</div>
+      <div id="sidebar-date"></div>
+    </aside>
+
+    <!-- Content area: 80% width -->
+    <div id="content-area">
+      <div id="carousel-wrapper">
+        <div id="news-container">
+          <!-- Slides are injected here by JS -->
+          <div id="loading-msg">Kraunamos naujienos...</div>
+        </div>
+        <!-- Progress dots injected here by JS -->
+        <div id="progress-container"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* ==============================================================
+     * VU MIF Naujienų Portalas — vanilla JS, Chromium 56+ safe
+     * ==============================================================
+     * CONFIGURATION — change API_URL here if the server moves
+     * ============================================================== */
+    var API_URL = 'http://193.219.91.103:11857/api/news';
+
+    /* ── State ── */
+    var newsItems = [];
+    var currentIndex = 0;
+    var autoRotateTimer = null;
+
+    /* ==============================================================
+     * CLOCK — update every second
+     * ============================================================== */
+    function updateClock() {
+      var now = new Date();
+      var h = now.getHours();
+      var m = now.getMinutes();
+
+      var hStr = h < 10 ? '0' + h : '' + h;
+      var mStr = m < 10 ? '0' + m : '' + m;
+
+      var timeEl = document.getElementById('sidebar-time');
+      if (timeEl) {
+        timeEl.innerHTML = hStr + ':' + mStr;
+      }
+
+      var months = [
+        'sausio', 'vasario', 'kovo', 'baland\u017eio', 'gegu\u017e\u0117s',
+        'bir\u017eelio', 'liepos', 'rugpj\u016b\u010dio', 'rugs\u0117jo',
+        'spalio', 'lapkri\u010dio', 'gruod\u017eio'
+      ];
+      var days = [
+        'sekmadienis', 'pirmadienis', 'antradienis', 'tre\u010diadienis',
+        'ketvirtadienis', 'penktadienis', '\u0161e\u0161tadienis'
+      ];
+
+      var dateEl = document.getElementById('sidebar-date');
+      if (dateEl) {
+        dateEl.innerHTML = days[now.getDay()] + ', ' + now.getDate() + ' ' + months[now.getMonth()];
+      }
+    }
+
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    /* ==============================================================
+     * DAILY RELOAD at 03:00
+     * ============================================================== */
+    function scheduleDailyReload() {
+      var now = new Date();
+      var night = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate() + (now.getHours() >= 3 ? 1 : 0),
+        3, 0, 0
+      );
+      var msToNight = night.getTime() - now.getTime();
+      setTimeout(function() {
+        window.location.reload();
+      }, msToNight);
+    }
+
+    scheduleDailyReload();
+
+    /* ==============================================================
+     * CAROUSEL — render slides
+     * ============================================================== */
+    function renderSlides() {
+      var container = document.getElementById('news-container');
+      var dotsContainer = document.getElementById('progress-container');
+
+      if (!container || !dotsContainer) return;
+
+      /* Remove existing slides (keep loading msg initially — it gets
+         overwritten on first successful fetch) */
+      var existingSlides = container.querySelectorAll('.slide');
+      var i;
+      for (i = 0; i < existingSlides.length; i++) {
+        container.removeChild(existingSlides[i]);
+      }
+
+      /* Hide loading msg if we have items */
+      var loadingMsg = document.getElementById('loading-msg');
+      if (newsItems.length > 0 && loadingMsg) {
+        loadingMsg.style.display = 'none';
+      }
+
+      /* Build slides */
+      for (i = 0; i < newsItems.length; i++) {
+        var item = newsItems[i];
+        var slide = document.createElement('div');
+        slide.className = 'slide ' + (i === currentIndex ? 'slide-active' : 'slide-inactive');
+        slide.id = 'slide-' + i;
+
+        /* Left column: headline */
+        var leftCol = document.createElement('div');
+        leftCol.className = 'left-column';
+
+        var h2 = document.createElement('h2');
+        h2.className = 'headline';
+        h2.innerHTML = item.title || '';
+        leftCol.appendChild(h2);
+
+        /* Right column: date + article body */
+        var rightCol = document.createElement('div');
+        rightCol.className = 'right-column';
+
+        var dateDiv = document.createElement('div');
+        dateDiv.className = 'date-label';
+        dateDiv.innerHTML = (item.category || 'Naujiena') + ' | ' + (item.date || '');
+
+        var bodyDiv = document.createElement('div');
+        bodyDiv.className = 'article-body';
+        bodyDiv.id = 'article-body-' + i;
+        bodyDiv.setAttribute('tabindex', '0');
+
+        var innerDiv = document.createElement('div');
+        /* dangerouslySetInnerHTML equivalent — inject CMS HTML */
+        innerDiv.innerHTML = item.description || '';
+        bodyDiv.appendChild(innerDiv);
+
+        rightCol.appendChild(dateDiv);
+        rightCol.appendChild(bodyDiv);
+
+        slide.appendChild(leftCol);
+        slide.appendChild(rightCol);
+        container.appendChild(slide);
+      }
+
+      /* Build dots */
+      dotsContainer.innerHTML = '';
+      for (i = 0; i < newsItems.length; i++) {
+        var dot = document.createElement('button');
+        dot.className = 'dot ' + (i === currentIndex ? 'dot-active' : 'dot-inactive');
+        dot.id = 'dot-' + i;
+        /* Use a closure to capture the correct index */
+        (function(idx) {
+          dot.onclick = function() {
+            goToSlide(idx);
+            startAutoRotation(); /* Reset timer on dot click */
+          };
+        })(i);
+        dotsContainer.appendChild(dot);
+      }
+    }
+
+    function updateActiveClasses() {
+      var i;
+      for (i = 0; i < newsItems.length; i++) {
+        var slide = document.getElementById('slide-' + i);
+        var dot = document.getElementById('dot-' + i);
+
+        if (slide) {
+          if (i === currentIndex) {
+            slide.className = 'slide slide-active';
+          } else {
+            slide.className = 'slide slide-inactive';
+          }
+        }
+
+        if (dot) {
+          if (i === currentIndex) {
+            dot.className = 'dot dot-active';
+          } else {
+            dot.className = 'dot dot-inactive';
+          }
+        }
+      }
+
+      /* Reset scroll on active article body */
+      var activeBody = document.getElementById('article-body-' + currentIndex);
+      if (activeBody) {
+        activeBody.scrollTop = 0;
+      }
+    }
+
+    function goToSlide(idx) {
+      currentIndex = idx;
+      updateActiveClasses();
+    }
+
+    /* ==============================================================
+     * AUTO-ROTATION — advance every 30 seconds
+     * ============================================================== */
+    function startAutoRotation() {
+      if (autoRotateTimer) {
+        clearInterval(autoRotateTimer);
+        autoRotateTimer = null;
+      }
+      autoRotateTimer = setInterval(function() {
+        if (newsItems.length === 0) return;
+        currentIndex = (currentIndex + 1) % newsItems.length;
+        updateActiveClasses();
+      }, 30000);
+    }
+
+    /* ==============================================================
+     * XHR — fetch news from API, update slides without page reload
+     * Ported directly from NewsCarousel.tsx's fetchLatestNews()
+     * ============================================================== */
+    function fetchLatestNews() {
+      var xhr = new XMLHttpRequest();
+      /* Cache-busting: append timestamp + random to avoid Tizen caching */
+      xhr.open(
+        'GET',
+        API_URL + '?t=' + new Date().getTime() + '&r=' + Math.random(),
+        true
+      );
+      xhr.onreadystatechange = function() {
+        if (xhr.readyState === 4 && xhr.status === 200) {
+          try {
+            var freshData = JSON.parse(xhr.responseText);
+            if (freshData && freshData.length > 0) {
+              newsItems = freshData;
+              /* Guard: if current slide index is now out of bounds, reset */
+              if (currentIndex >= newsItems.length) {
+                currentIndex = 0;
+              }
+              renderSlides();
+              if (autoRotateTimer === null) {
+                startAutoRotation();
+              }
+            }
+          } catch (e) {
+            /* Silent fail — keep showing existing slides */
+          }
+        }
+      };
+      xhr.send();
+    }
+
+    /* ── Fetch immediately on load, then every 30 minutes ── */
+    fetchLatestNews();
+    setInterval(fetchLatestNews, 1800000);
+  </script>
+</body>
+</html>
