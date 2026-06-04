@@ -170,27 +170,21 @@
       -webkit-box-direction: normal;
       -webkit-flex-direction: column;
       flex-direction: column;
-      -webkit-transition: opacity 0.8s ease-in-out, visibility 0.8s ease-in-out;
-      transition: opacity 0.8s ease-in-out, visibility 0.8s ease-in-out;
-      will-change: opacity;
+      /* Only transition opacity — visibility transition is unreliable on
+         Chromium 56 (Tizen 4) and can freeze slides in a hidden state */
+      -webkit-transition: opacity 0.8s ease-in-out;
+      transition: opacity 0.8s ease-in-out;
       -webkit-backface-visibility: hidden;
       backface-visibility: hidden;
       background: white;
-    }
-
-    .slide-active {
-      opacity: 1;
-      visibility: visible;
-      pointer-events: auto;
-      z-index: 2;
-    }
-
-    .slide-inactive {
+      /* Start every slide fully transparent; JS sets opacity via style */
       opacity: 0;
-      visibility: hidden;
       pointer-events: none;
       z-index: 1;
     }
+
+    /* Active/inactive states are applied via element.style in JS,
+       not via className toggling, for maximum Chromium 56 reliability */
 
     /* ─── Left Column (Headline bar) ─── */
     .left-column {
@@ -474,8 +468,18 @@
       for (i = 0; i < slides.length; i++) {
         var item = slides[i];
         var slide = document.createElement('div');
-        slide.className = 'slide ' + (i === currentIndex ? 'slide-active' : 'slide-inactive');
+        slide.className = 'slide';
         slide.id = 'slide-' + i;
+        /* Set initial visibility via style — active slide starts opaque */
+        if (i === currentIndex) {
+          slide.style.opacity       = '1';
+          slide.style.pointerEvents = 'auto';
+          slide.style.zIndex        = '2';
+        } else {
+          slide.style.opacity       = '0';
+          slide.style.pointerEvents = 'none';
+          slide.style.zIndex        = '1';
+        }
 
         /* Left column: headline */
         var leftCol = document.createElement('div');
@@ -530,30 +534,34 @@
     }
 
     function updateActiveClasses() {
-      /* Read slides.length from the top-level array at call-time */
+      /* Write styles directly — avoids className/repaint bugs on Chromium 56 */
       var i;
       for (i = 0; i < slides.length; i++) {
-        var slide = document.getElementById('slide-' + i);
-        var dot = document.getElementById('dot-' + i);
+        var slideEl = document.getElementById('slide-' + i);
+        var dotEl   = document.getElementById('dot-' + i);
 
-        if (slide) {
+        if (slideEl) {
           if (i === currentIndex) {
-            slide.className = 'slide slide-active';
+            slideEl.style.opacity       = '1';
+            slideEl.style.pointerEvents = 'auto';
+            slideEl.style.zIndex        = '2';
           } else {
-            slide.className = 'slide slide-inactive';
+            slideEl.style.opacity       = '0';
+            slideEl.style.pointerEvents = 'none';
+            slideEl.style.zIndex        = '1';
           }
         }
 
-        if (dot) {
+        if (dotEl) {
           if (i === currentIndex) {
-            dot.className = 'dot dot-active';
+            dotEl.className = 'dot dot-active';
           } else {
-            dot.className = 'dot dot-inactive';
+            dotEl.className = 'dot dot-inactive';
           }
         }
       }
 
-      /* Reset scroll position on the newly-active article body */
+      /* Reset scroll on newly-active article body */
       var activeBody = document.getElementById('article-body-' + currentIndex);
       if (activeBody) {
         activeBody.scrollTop = 0;
