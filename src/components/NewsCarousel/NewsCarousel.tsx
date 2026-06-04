@@ -53,7 +53,7 @@ export default function NewsCarousel({ initialItems }: NewsCarouselProps) {
     if (autoRotateTimerRef.current) clearInterval(autoRotateTimerRef.current);
     autoRotateTimerRef.current = setInterval(() => {
       setCurrentIndex(prev => (prev + 1) % items.length);
-    }, 30000); // SUTISYTA: Tiksliai 30 sekundžių vienai skaidrei
+    }, 30000); // Tiksliai 30 sekundžių vienai skaidrei
   }, [items.length]);
 
   useEffect(() => {
