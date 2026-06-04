@@ -455,18 +455,20 @@
 
       if (!container || !dotsContainer) return;
 
-      /* Remove existing slide elements — read live NodeList each time */
-      var existingSlides = container.querySelectorAll('.slide');
-      var i;
-      for (i = 0; i < existingSlides.length; i++) {
-        container.removeChild(existingSlides[i]);
+      /* Paprasčiausias ir patikimiausias būdas išvalyti:
+         išsaugome loading-msg prieš trindami, tada grąžiname jį atgal */
+      var loadingMsg = document.getElementById('loading-msg');
+      container.innerHTML = '';
+      if (loadingMsg) {
+        container.appendChild(loadingMsg);
       }
 
-      /* Hide loading msg once we have data */
-      var loadingMsg = document.getElementById('loading-msg');
+      /* Slepiame loading-msg kai turime duomenų */
       if (slides.length > 0 && loadingMsg) {
         loadingMsg.style.display = 'none';
       }
+
+      var i;
 
       /* Build slide DOM nodes from top-level slides array */
       for (i = 0; i < slides.length; i++) {
