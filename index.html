@@ -356,6 +356,9 @@
 </head>
 
 <body>
+  <!-- DEBUG: shows slide count from XHR — remove after testing -->
+  <div id="debug" style="position:fixed;top:0;right:0;background:red;color:white;font-size:40px;z-index:9999">0</div>
+
   <div id="app">
     <!-- Sidebar: 20% width, dark blue, shows clock + date -->
     <aside id="sidebar">
@@ -631,6 +634,7 @@
               /* Update slides in place — interval will pick up the new
                  length automatically on its next fire */
               slides = freshData;
+              document.getElementById('debug').innerHTML = slides.length;
               /* Guard: clamp index if new data has fewer slides */
               if (currentIndex >= slides.length) {
                 currentIndex = 0;
