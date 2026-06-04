@@ -382,8 +382,13 @@
      * ============================================================== */
     var API_URL = 'http://193.219.91.103:11857/api/news';
 
-    /* ── State ── */
-    var newsItems = [];
+    /* ── State ──
+     * slides  — top-level array; always read slides.length at call-time,
+     *           never from a closed-over snapshot.
+     * autoRotateTimer — created once on first successful XHR; never
+     *                   recreated by the refresh path.
+     */
+    var slides = [];
     var currentIndex = 0;
     var autoRotateTimer = null;
 
@@ -450,23 +455,22 @@
 
       if (!container || !dotsContainer) return;
 
-      /* Remove existing slides (keep loading msg initially — it gets
-         overwritten on first successful fetch) */
+      /* Remove existing slide elements — read live NodeList each time */
       var existingSlides = container.querySelectorAll('.slide');
       var i;
       for (i = 0; i < existingSlides.length; i++) {
         container.removeChild(existingSlides[i]);
       }
 
-      /* Hide loading msg if we have items */
+      /* Hide loading msg once we have data */
       var loadingMsg = document.getElementById('loading-msg');
-      if (newsItems.length > 0 && loadingMsg) {
+      if (slides.length > 0 && loadingMsg) {
         loadingMsg.style.display = 'none';
       }
 
-      /* Build slides */
-      for (i = 0; i < newsItems.length; i++) {
-        var item = newsItems[i];
+      /* Build slide DOM nodes from top-level slides array */
+      for (i = 0; i < slides.length; i++) {
+        var item = slides[i];
         var slide = document.createElement('div');
         slide.className = 'slide ' + (i === currentIndex ? 'slide-active' : 'slide-inactive');
         slide.id = 'slide-' + i;
@@ -506,17 +510,17 @@
         container.appendChild(slide);
       }
 
-      /* Build dots */
+      /* Build progress dots */
       dotsContainer.innerHTML = '';
-      for (i = 0; i < newsItems.length; i++) {
+      for (i = 0; i < slides.length; i++) {
         var dot = document.createElement('button');
         dot.className = 'dot ' + (i === currentIndex ? 'dot-active' : 'dot-inactive');
         dot.id = 'dot-' + i;
-        /* Use a closure to capture the correct index */
+        /* Closure captures idx so each button knows its own slide number */
         (function(idx) {
           dot.onclick = function() {
             goToSlide(idx);
-            startAutoRotation(); /* Reset timer on dot click */
+            startAutoRotation(); /* Reset timer on manual dot click */
           };
         })(i);
         dotsContainer.appendChild(dot);
@@ -524,8 +528,9 @@
     }
 
     function updateActiveClasses() {
+      /* Read slides.length from the top-level array at call-time */
       var i;
-      for (i = 0; i < newsItems.length; i++) {
+      for (i = 0; i < slides.length; i++) {
         var slide = document.getElementById('slide-' + i);
         var dot = document.getElementById('dot-' + i);
 
@@ -546,7 +551,7 @@
         }
       }
 
-      /* Reset scroll on active article body */
+      /* Reset scroll position on the newly-active article body */
       var activeBody = document.getElementById('article-body-' + currentIndex);
       if (activeBody) {
         activeBody.scrollTop = 0;
@@ -560,6 +565,15 @@
 
     /* ==============================================================
      * AUTO-ROTATION — advance every 30 seconds
+     *
+     * The interval callback reads slides.length from the top-level
+     * var at fire-time, never from a closed-over snapshot, so it
+     * always reflects the most recent fetch result.
+     *
+     * startAutoRotation() is called:
+     *   • once, when the first XHR succeeds (autoRotateTimer is null)
+     *   • on manual dot click (to reset the 30 s countdown)
+     * It is NEVER called from the XHR refresh path.
      * ============================================================== */
     function startAutoRotation() {
       if (autoRotateTimer) {
@@ -567,19 +581,29 @@
         autoRotateTimer = null;
       }
       autoRotateTimer = setInterval(function() {
-        if (newsItems.length === 0) return;
-        currentIndex = (currentIndex + 1) % newsItems.length;
+        /* slides is the top-level array — .length is live, not captured */
+        if (slides.length === 0) return;
+        currentIndex = (currentIndex + 1) % slides.length;
         updateActiveClasses();
       }, 30000);
     }
 
     /* ==============================================================
      * XHR — fetch news from API, update slides without page reload
-     * Ported directly from NewsCarousel.tsx's fetchLatestNews()
+     * Ported from NewsCarousel.tsx's fetchLatestNews()
+     *
+     * On success:
+     *   1. Update the top-level slides array in place.
+     *   2. Guard currentIndex against out-of-bounds.
+     *   3. Rebuild the DOM via renderSlides().
+     *   4. Start the auto-rotate interval ONLY if it hasn't been
+     *      started yet (autoRotateTimer === null). Subsequent refreshes
+     *      leave the running interval untouched — no duplicate timers.
      * ============================================================== */
     function fetchLatestNews() {
       var xhr = new XMLHttpRequest();
-      /* Cache-busting: append timestamp + random to avoid Tizen caching */
+      /* Cache-busting: timestamp + random prevents Tizen from serving
+         a stale cached response */
       xhr.open(
         'GET',
         API_URL + '?t=' + new Date().getTime() + '&r=' + Math.random(),
@@ -590,12 +614,16 @@
           try {
             var freshData = JSON.parse(xhr.responseText);
             if (freshData && freshData.length > 0) {
-              newsItems = freshData;
-              /* Guard: if current slide index is now out of bounds, reset */
-              if (currentIndex >= newsItems.length) {
+              /* Update slides in place — interval will pick up the new
+                 length automatically on its next fire */
+              slides = freshData;
+              /* Guard: clamp index if new data has fewer slides */
+              if (currentIndex >= slides.length) {
                 currentIndex = 0;
               }
+              /* Rebuild DOM to match updated slides array */
               renderSlides();
+              /* Start rotation exactly once — never restart on refresh */
               if (autoRotateTimer === null) {
                 startAutoRotation();
               }
@@ -608,7 +636,7 @@
       xhr.send();
     }
 
-    /* ── Fetch immediately on load, then every 30 minutes ── */
+    /* ── Fetch immediately on load, then silently every 30 minutes ── */
     fetchLatestNews();
     setInterval(fetchLatestNews, 1800000);
   </script>
